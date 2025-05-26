@@ -71,7 +71,7 @@ public record Properties(Mode mode, File secret, int k, int n, Path directory) {
 
     File secretFile = new File(secret);
 
-    String k = System.getProperty("n");
+    String k = System.getProperty("k");
     if (k == null) {
       throw new MissingRequiredParameterException("k");
     }
