@@ -78,6 +78,10 @@ public record Properties(Mode mode, File secret, int k, int n, Path directory) {
 
     int kValue = Integer.parseInt(k);
 
+    if (kValue < 2 || kValue > 10) {
+      throw new IllegalArgumentException("The parameter 'k' must be between 2 and 10");
+    }
+
     // Optional parameters
     String n = System.getProperty("n");
     if (n != null && mode != Mode.DISTRIBUTE) {
@@ -91,6 +95,10 @@ public record Properties(Mode mode, File secret, int k, int n, Path directory) {
       nValue = Integer.parseInt(n);
     } else {
       nValue = (int) getFileAmount(dirPath);
+    }
+
+    if (nValue < 2) {
+      throw new IllegalArgumentException("The parameter 'n' must be greater or equal than 2");
     }
 
     return new Properties(mode, secretFile, kValue, nValue, dirPath);
