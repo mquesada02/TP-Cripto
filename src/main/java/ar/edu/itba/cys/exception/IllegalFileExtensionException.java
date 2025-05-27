@@ -1,4 +1,4 @@
-package ar.edu.itba.cys.system.exception;
+package ar.edu.itba.cys.exception;
 
 public class IllegalFileExtensionException extends RuntimeException {
   public IllegalFileExtensionException(String file) {

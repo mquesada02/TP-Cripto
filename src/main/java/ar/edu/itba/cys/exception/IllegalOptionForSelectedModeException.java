@@ -1,4 +1,4 @@
-package ar.edu.itba.cys.system.exception;
+package ar.edu.itba.cys.exception;
 
 import ar.edu.itba.cys.image.Mode;
 
