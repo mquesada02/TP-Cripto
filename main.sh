@@ -17,4 +17,6 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+mvn clean install
+
 mvn exec:java -Dexec.mainClass="ar.edu.itba.cys.Main" "${properties[@]}"

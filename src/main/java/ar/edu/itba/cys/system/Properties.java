@@ -81,7 +81,7 @@ public record Properties(Mode mode, File secret, int k, int n, String directory)
       nValue = (int) BMPIO.getFileAmount(dir);
     }
 
-    if (nValue < 2) {
+    if (mode == Mode.DISTRIBUTE && nValue < 2) {
       throw new IllegalArgumentException("The parameter 'n' must be greater or equal than 2");
     }
 

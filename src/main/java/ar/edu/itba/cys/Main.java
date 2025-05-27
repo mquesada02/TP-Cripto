@@ -11,14 +11,14 @@ public class Main {
         Properties properties = Properties.getProperties();
         Mode mode = properties.mode();
         int k = properties.k();
-        int n = properties.n();
         File secretFile = properties.secret();
         String output = properties.directory();
         if (mode == Mode.DISTRIBUTE) {
             int[][] imageMatrix = ImageParsing.getXORGrayscaleBMPImage(secretFile);
+            int n = properties.n();
             ImageSharing.encode(k, n, imageMatrix, output);
         } else {
-            ImageSharing.decode(k, n, output, secretFile);
+            ImageSharing.decode(k, output, secretFile);
         }
     }
 }

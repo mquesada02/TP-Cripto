@@ -7,6 +7,11 @@ import java.util.stream.IntStream;
 
 public class LagrangianInterpolation implements ModularInterpolation {
 
+  private static int mod(int a) {
+    int mod = RemainderTable.PRIME_MOD;
+    return ((a % mod) + mod) % mod;
+  }
+
   private static int modAdd(int a, int b) {
     int mod = RemainderTable.PRIME_MOD;
     return ((a + b) % mod + mod) % mod;
@@ -37,7 +42,8 @@ public class LagrangianInterpolation implements ModularInterpolation {
       for (int m = 0; m < r; m++) {
         if (m == j) continue;
         int x_m = xs[m];
-        denom = modMul(denom, xs[j] - x_m);
+        int diff = mod(xs[j] - x_m);
+        denom = modMul(denom, diff);
         int mod = RemainderTable.PRIME_MOD;
         basis = polyMul(basis, new int[]{(mod - x_m) % mod, 1});
       }

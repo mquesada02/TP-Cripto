@@ -16,25 +16,23 @@ public class BMPIO {
 
   public static final String FILE_EXTENSION = ".bmp";
 
-  public static List<List<Integer>> getPixels(String dir) {
+  public static Pair<Size, List<List<Integer>>> getPixels(String dir) {
     Path dirPath = Paths.get(dir);
     List<List<Integer>> pixelsByImage = new ArrayList<>();
     List<Path> files = getFiles(dirPath);
+    Size size = null;
     for (Path file : files) {
       Pair<Size, List<Integer>> pair = readFromBMP(file);
+      size = pair.getFirst();
       List<Integer> pixels = pair.getSecond();
       pixelsByImage.add(pixels);
     }
-    return pixelsByImage;
+    return Pair.of(size, pixelsByImage);
   }
 
   public static List<Path> getFiles(Path dir) {
-    return filterFiles(dir).toList();
-  }
-
-  public static Stream<Path> filterFiles(Path dir) {
     try (Stream<Path> files = Files.list(dir)) {
-      return files.filter(file -> !Files.isDirectory(file) && file.getFileName().toString().endsWith(BMPIO.FILE_EXTENSION));
+      return files.filter(file -> !Files.isDirectory(file) && file.getFileName().toString().endsWith(BMPIO.FILE_EXTENSION)).toList();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -45,7 +43,7 @@ public class BMPIO {
     if (!Files.exists(dirPath) || !Files.isDirectory(dirPath)) {
       throw new IllegalArgumentException("The following path does not exist or isn't a directory: " + dirPath);
     }
-    return filterFiles(dirPath).count();
+    return getFiles(dirPath).size();
   }
 
   public static int readIntLE(FileInputStream fis) throws IOException {

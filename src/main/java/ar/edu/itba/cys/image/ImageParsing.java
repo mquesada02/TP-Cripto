@@ -28,6 +28,7 @@ public class ImageParsing {
           width = BMPIO.readIntLE(fileInputStream);
           height = BMPIO.readIntLE(fileInputStream);
           fileInputStream.close();
+          return new Size(width, height);
         } else {
           counter++;
         }
@@ -87,15 +88,6 @@ public class ImageParsing {
         secretImage[i][j] ^= rand.nextInt(256);
       }
     }
-
-    List<Integer> flat = flatMatrixToList(secretImage);
-
-    int width = secretImage.length;
-    int height = secretImage[0].length;
-
-    File parentDir = secret.getParentFile();
-    File xorImage = new File(parentDir, String.format("XOR%s", BMPIO.FILE_EXTENSION));
-    BMPIO.writeToBMP(xorImage.getAbsolutePath(), flat, width, height);
     return secretImage;
   }
 
@@ -119,6 +111,7 @@ public class ImageParsing {
             }
           }
           fileInputStream.close();
+          return imageBitMap;
         } else {
           counter++;
         }

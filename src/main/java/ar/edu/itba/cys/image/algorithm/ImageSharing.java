@@ -5,12 +5,14 @@ import ar.edu.itba.cys.image.ImageParsing;
 import ar.edu.itba.cys.math.LagrangianInterpolation;
 import ar.edu.itba.cys.math.ModularInterpolation;
 import ar.edu.itba.cys.utils.Pair;
+import ar.edu.itba.cys.utils.RandomGenerator;
 import ar.edu.itba.cys.utils.Size;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -43,21 +45,24 @@ public class ImageSharing {
                 shadowPixels = getShadowPixels(n, mutableSharingSection);
             }
             for (int i = 0; i < n; i++) {
-                shadowImages.get(i).add(shadowPixels.get(i)); // it appends to the current position
+                shadowImages.get(i).add(shadowPixels.get(i));
             }
         }
 
-        int width = imageMatrix.length;
-        int height = imageMatrix[0].length;
+        int height = imageMatrix.length;
+        int width = imageMatrix[0].length;
 
         for (int i = 0; i < n; i++) {
-            String filename = String.format("%s%sshadow_%d%s", outputDirectory, File.pathSeparator, (i + 1), BMPIO.FILE_EXTENSION);
+            String filename = String.format("%s%sshadow_%d%s", outputDirectory, File.separator, (i + 1), BMPIO.FILE_EXTENSION);
             BMPIO.writeToBMP(filename, shadowImages.get(i), width, height);
         }
     }
 
-    public static void decode(int k, int n, String directory, File outputFile) {
-        List<List<Integer>> shadows = BMPIO.getPixels(directory);
+    public static void decode(int k, String directory, File outputFile) {
+        Pair<Size, List<List<Integer>>> sizeAndShadows = BMPIO.getPixels(directory);
+
+        Size size = sizeAndShadows.getFirst();
+        List<List<Integer>> shadows = sizeAndShadows.getSecond();
 
         List<Integer> image = new ArrayList<>();
 
@@ -71,10 +76,12 @@ public class ImageSharing {
             image.addAll(coefficients);
         }
 
-        Path xorFile = Path.of(String.format("%s%sXOR%s", directory, File.pathSeparator, BMPIO.FILE_EXTENSION));
-        Pair<Size, List<Integer>> pair = BMPIO.readFromBMP(xorFile);
-        Size size = pair.getFirst();
-        List<Integer> pixels = pair.getSecond();
+        Random rand = RandomGenerator.getRandom();
+        System.out.println(image.size() + " vs " + size.getHeight() * size.getWidth());
+        List<Integer> pixels = new ArrayList<>(image.size());
+        for (int i = 0; i < image.size(); i++) {
+            pixels.add(rand.nextInt(256));
+        }
         List<Integer> secretImage = new ArrayList<>();
         for (int i = 0; i < image.size(); i++) {
             secretImage.add(image.get(i) ^ pixels.get(i));
