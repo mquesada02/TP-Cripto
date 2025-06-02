@@ -1,5 +1,6 @@
 package ar.edu.itba.cys.image;
 
+import ar.edu.itba.cys.image.algorithm.Shadow;
 import ar.edu.itba.cys.utils.Pair;
 import ar.edu.itba.cys.utils.Size;
 
@@ -16,7 +17,7 @@ public class BMPIO {
 
   public static final String FILE_EXTENSION = ".bmp";
 
-  public static Pair<Size, List<List<Integer>>> getPixels(String dir) {
+  public static List<Shadow> getPixels(String dir) {
     Path dirPath = Paths.get(dir);
     List<List<Integer>> pixelsByImage = new ArrayList<>();
     List<Path> files = getFiles(dirPath);
@@ -65,7 +66,8 @@ public class BMPIO {
       if (in.read(header) != 54) {
         throw new IOException("Invalid BMP header size");
       }
-
+      int seed = ((header[7] & 0xFF) << 8 | (header[6] & 0xFF));
+      int shadowIndex = ((header[9] & 0xFF) << 8 | (header[8] & 0xFF));
       int dataOffset = ((header[13] & 0xFF) << 24) | ((header[12] & 0xFF) << 16) | ((header[11] & 0xFF) << 8) | (header[10] & 0xFF);
 
       int width = ((header[21] & 0xFF) << 24) | ((header[20] & 0xFF) << 16) | ((header[19] & 0xFF) << 8) | (header[18] & 0xFF);
@@ -117,7 +119,7 @@ public class BMPIO {
     os.write((value >> 8) & 0xFF);
   }
 
-  public static void writeToBMP(String filename, List<Integer> pixels, int width, int height) {
+  public static void writeToBMP(String hostFilename, String shadowFilename, Shadow shadow) {
     try (FileOutputStream fos = new FileOutputStream(filename)) {
       int rowSize = (width + 3) & ~3;
       int imageSize = rowSize * height;
@@ -127,8 +129,8 @@ public class BMPIO {
       byte[] header = new byte[] { 'B', 'M' };
       fos.write(header);
       writeIntLE(fos, fileSize);
-      writeShortLE(fos, 0);
-      writeShortLE(fos, 0);
+      writeShortLE(fos, seed);
+      writeShortLE(fos, shadowIndex);
       writeIntLE(fos, 14 + 40 + paletteSize);
 
       writeIntLE(fos, 40);
