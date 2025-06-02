@@ -14,8 +14,8 @@ public interface ModularInterpolation {
     int acum = 0;
     int xAcum = 1;
     for (int coefficient : coefficients) {
-      acum += coefficient * xAcum;
-      xAcum *= x;
+      acum = (acum + (coefficient * xAcum) % RemainderTable.PRIME_MOD) % RemainderTable.PRIME_MOD;
+      xAcum = (xAcum * x) % RemainderTable.PRIME_MOD;
     }
     return acum % RemainderTable.PRIME_MOD;
   }
