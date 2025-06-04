@@ -70,9 +70,11 @@ public class BMPIO {
       int reservedLow = ((header[9] & 0xFF) << 8 | (header[8] & 0xFF));
       int dataOffset = ((header[13] & 0xFF) << 24) | ((header[12] & 0xFF) << 16) | ((header[11] & 0xFF) << 8) | (header[10] & 0xFF);
 
+      int size = ((header[17] & 0xFF) << 24) | ((header[16] & 0xFF) << 16) | ((header[15] & 0xFF) << 8) | (header[14] & 0xFF);
       int width = ((header[21] & 0xFF) << 24) | ((header[20] & 0xFF) << 16) | ((header[19] & 0xFF) << 8) | (header[18] & 0xFF);
       int height = ((header[25] & 0xFF) << 24) | ((header[24] & 0xFF) << 16) | ((header[23] & 0xFF) << 8) | (header[22] & 0xFF);
-      int bitsPerPixel = ((header[29] & 0xFF) << 24) | ((header[28] & 0xFF) << 16) | ((header[27] & 0xFF) << 8) | (header[26] & 0xFF);
+      int planes = ((header[27] & 0xFF) << 8) | (header[26] & 0xFF);
+      int bitsPerPixel = ((header[29] & 0xFF) << 8) | (header[28] & 0xFF);
       int compression = ((header[33] & 0xFF) << 24) | ((header[32] & 0xFF) << 16) | ((header[31] & 0xFF) << 8) | (header[30] & 0xFF);
       int xPixelsPerM = ((header[41] & 0xFF) << 24) | ((header[40] & 0xFF) << 16) | ((header[39] & 0xFF) << 8) | (header[38] & 0xFF);
       int yPixelsPerM = ((header[45] & 0xFF) << 24) | ((header[44] & 0xFF) << 16) | ((header[43] & 0xFF) << 8) | (header[42] & 0xFF);
@@ -121,7 +123,7 @@ public class BMPIO {
       return image;
 
     } catch (IOException e) {
-      throw new RuntimeException("Failed to read BMP: " + file.getFileName(), e);
+      throw new RuntimeException("Failed to read BMP: " + file.getFileName() + e.getMessage(), e);
     }
   }
 

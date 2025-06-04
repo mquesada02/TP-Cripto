@@ -91,11 +91,14 @@ public class ImageSharing {
 
         BMPHostImage firstHostImage = hosts.getFirst();
         BMPHeader hostHeader = firstHostImage.getHeader();
+        Shadow firstShadow = shadows.get(0);
+        int seed = firstShadow.getSeed();
+        int shadowSize = firstShadow.getPixels().size();
         byte[] colorTable = firstHostImage.getColorTable();
 
         List<Integer> image = new ArrayList<>();
 
-        for (int i = 0; i < shadows.size(); i++) {
+        for (int i = 0; i < shadowSize; i++) {
             List<Integer> ys = new ArrayList<>(k);
             for (int j = 0; j < k; j++) {
                 int pixel = shadows.get(j).getPixels().get(i);
@@ -106,6 +109,7 @@ public class ImageSharing {
         }
 
         Random rand = RandomGenerator.getRandom();
+        rand.setSeed(seed);
         List<Integer> pixels = new ArrayList<>(image.size());
         for (int i = 0; i < image.size(); i++) {
             pixels.add(rand.nextInt(256));
