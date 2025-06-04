@@ -1,9 +1,12 @@
 package ar.edu.itba.cys.image.algorithm;
 
+import ar.edu.itba.cys.image.BMPHeader;
+import ar.edu.itba.cys.image.BMPHostImage;
 import ar.edu.itba.cys.image.BMPIO;
 import ar.edu.itba.cys.image.ImageParsing;
 import ar.edu.itba.cys.math.LagrangianInterpolation;
 import ar.edu.itba.cys.math.ModularInterpolation;
+import ar.edu.itba.cys.utils.Pair;
 import ar.edu.itba.cys.utils.RandomGenerator;
 
 import java.io.File;
@@ -77,18 +80,19 @@ public class ImageSharing {
             String hostFilename = fileSet.get(i);
             String shadowFilename = String.format("%sssd%s", hostFilename, BMPIO.FILE_EXTENSION);
             Shadow shadow = shadowImages.get(i);
-            BMPIO.writeToBMP(hostFilename, shadowFilename, , width, height);
+            BMPIO.writeShadowToBMPHostImage(hostFilename, shadowFilename, shadow);
         }
     }
 
     public static void decode(int k, String directory, File outputFile) {
-        List<Shadow> shadows = BMPIO.getPixels(directory);
+        Pair<List<BMPHostImage>,List<Shadow>> pairHostShadow = BMPIO.getShadowForEachHostImage(directory);
+        List<BMPHostImage> hosts = pairHostShadow.getFirst();
+        List<Shadow> shadows = pairHostShadow.getSecond();
 
-        Shadow firstShadow = shadows.getFirst();
-        int height = firstShadow.getHeight();
-        int width = firstShadow.getWidth();
-        int seed = firstShadow.getSeed();
-        int finalIndex = 0;
+        BMPHostImage firstHostImage = hosts.getFirst();
+        BMPHeader hostHeader = firstHostImage.getHeader();
+        byte[] colorTable = firstHostImage.getColorTable();
+
         List<Integer> image = new ArrayList<>();
 
         for (int i = 0; i < shadows.size(); i++) {
@@ -111,6 +115,6 @@ public class ImageSharing {
             secretImage.add(image.get(i) ^ pixels.get(i));
         }
 
-        BMPIO.writeToBMP(outputFile.getPath(), secretImage, seed, finalIndex, width, height);
+        BMPIO.writeToBMP(outputFile.getPath(), hostHeader, colorTable, pixels);
     }
 }

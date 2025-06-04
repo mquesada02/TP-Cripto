@@ -2,33 +2,32 @@ package ar.edu.itba.cys.image;
 
 import ar.edu.itba.cys.image.algorithm.Shadow;
 import ar.edu.itba.cys.utils.Pair;
+import ar.edu.itba.cys.utils.RandomGenerator;
 import ar.edu.itba.cys.utils.Size;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class BMPIO {
 
   public static final String FILE_EXTENSION = ".bmp";
 
-  public static List<Shadow> getPixels(String dir) {
-    Path dirPath = Paths.get(dir);
-    List<List<Integer>> pixelsByImage = new ArrayList<>();
+  public static Pair<List<BMPHostImage>,List<Shadow>> getShadowForEachHostImage(String hostImagesDir) {
+    Path dirPath = Paths.get(hostImagesDir);
+    List<Shadow> shadows = new ArrayList<>();
+    List<BMPHostImage> hosts = new ArrayList<>();
     List<Path> files = getFiles(dirPath);
-    Size size = null;
     for (Path file : files) {
-      Pair<Size, List<Integer>> pair = readFromBMP(file);
-      size = pair.getFirst();
-      List<Integer> pixels = pair.getSecond();
-      pixelsByImage.add(pixels);
+      BMPHostImage image = (BMPHostImage) readFromBMP(file, true);
+      hosts.add(image);
+      Shadow shadow = image.getShadow();
+      shadows.add(shadow);
     }
-    return Pair.of(size, pixelsByImage);
+    return new Pair<>(hosts, shadows);
   }
 
   public static List<Path> getFiles(Path dir) {
@@ -60,18 +59,25 @@ public class BMPIO {
     return (b1 & 0xFF) | ((b2 & 0xFF) << 8) | ((b3 & 0xFF) << 16) | ((b4 & 0xFF) << 24);
   }
 
-  public static Pair<Size, List<Integer>> readFromBMP(Path file) {
+  public static BMPImage readFromBMP(Path file, Boolean hasSecret) {
     try (InputStream in = Files.newInputStream(file)) {
       byte[] header = new byte[54];
       if (in.read(header) != 54) {
         throw new IOException("Invalid BMP header size");
       }
-      int seed = ((header[7] & 0xFF) << 8 | (header[6] & 0xFF));
-      int shadowIndex = ((header[9] & 0xFF) << 8 | (header[8] & 0xFF));
+      int fileSize = ((header[5] & 0xFF) << 24) | ((header[4] & 0xFF) << 16) | ((header[3] & 0xFF) << 8) | (header[2] & 0xFF);
+      int reservedHigh = ((header[7] & 0xFF) << 8 | (header[6] & 0xFF));
+      int reservedLow = ((header[9] & 0xFF) << 8 | (header[8] & 0xFF));
       int dataOffset = ((header[13] & 0xFF) << 24) | ((header[12] & 0xFF) << 16) | ((header[11] & 0xFF) << 8) | (header[10] & 0xFF);
 
       int width = ((header[21] & 0xFF) << 24) | ((header[20] & 0xFF) << 16) | ((header[19] & 0xFF) << 8) | (header[18] & 0xFF);
       int height = ((header[25] & 0xFF) << 24) | ((header[24] & 0xFF) << 16) | ((header[23] & 0xFF) << 8) | (header[22] & 0xFF);
+      int bitsPerPixel = ((header[29] & 0xFF) << 24) | ((header[28] & 0xFF) << 16) | ((header[27] & 0xFF) << 8) | (header[26] & 0xFF);
+      int compression = ((header[33] & 0xFF) << 24) | ((header[32] & 0xFF) << 16) | ((header[31] & 0xFF) << 8) | (header[30] & 0xFF);
+      int xPixelsPerM = ((header[41] & 0xFF) << 24) | ((header[40] & 0xFF) << 16) | ((header[39] & 0xFF) << 8) | (header[38] & 0xFF);
+      int yPixelsPerM = ((header[45] & 0xFF) << 24) | ((header[44] & 0xFF) << 16) | ((header[43] & 0xFF) << 8) | (header[42] & 0xFF);
+      int colorsUsed = ((header[45] & 0xFF) << 24) | ((header[44] & 0xFF) << 16) | ((header[43] & 0xFF) << 8) | (header[42] & 0xFF);
+      int importantColors = ((header[49] & 0xFF) << 24) | ((header[48] & 0xFF) << 16) | ((header[47] & 0xFF) << 8) | (header[46] & 0xFF);
 
       int bitDepth = ((header[29] & 0xFF) << 8) | (header[28] & 0xFF);
       if (bitDepth != 8) {
@@ -80,9 +86,23 @@ public class BMPIO {
 
       int rowSize = ((width + 3) / 4) * 4;
       int imageSize = rowSize * height;
+      Map<Integer, Integer> numColorsMap = new HashMap<>();
+      numColorsMap.putIfAbsent(1,1);
+      numColorsMap.putIfAbsent(4,16);
+      numColorsMap.putIfAbsent(8, 256);
+      numColorsMap.putIfAbsent(16, 65536);
+      numColorsMap.putIfAbsent(24, 16777216);
+      if (!numColorsMap.containsKey(bitsPerPixel)){
+       throw new IOException("Invalid numColors value in BMP File");
+      }
 
-      long n = in.skip(dataOffset - 54);
-      if (n < dataOffset - 54) {
+      int numColors = numColorsMap.get(bitsPerPixel);
+      int colorTableSize = numColors * 4;
+      byte[] colorTable = new byte[colorTableSize];
+      in.read(colorTable);
+
+      long n = in.skip(dataOffset - 54 - colorTableSize);
+      if (n < dataOffset - 54 - colorTableSize) {
         throw new IOException("Corrupted BMP file");
       }
 
@@ -90,19 +110,16 @@ public class BMPIO {
       if (in.read(pixelData) != imageSize) {
         throw new IOException("Unexpected EOF while reading pixels");
       }
-
-      List<Integer> pixels = new ArrayList<>(width * height);
-      for (int y = height - 1; y >= 0; y--) {
-        int rowStart = y * rowSize;
-        for (int x = 0; x < width; x++) {
-          int gray = pixelData[rowStart + x] & 0xFF;
-          pixels.add(gray);
-        }
+      BMPHeader bmpHeader = new BMPHeader(fileSize, reservedHigh, reservedLow, dataOffset, width, height,bitsPerPixel, compression, imageSize, xPixelsPerM, yPixelsPerM, colorsUsed, importantColors);
+      BMPImage image;
+      if (hasSecret){
+        image = new BMPHostImage(bmpHeader, colorTable, pixelData);
+      }else{
+        image = new BMPImage(bmpHeader, colorTable, pixelData);
       }
 
-      Size size = new Size(width, height);
+      return image;
 
-      return Pair.of(size, pixels);
     } catch (IOException e) {
       throw new RuntimeException("Failed to read BMP: " + file.getFileName(), e);
     }
@@ -119,12 +136,70 @@ public class BMPIO {
     os.write((value >> 8) & 0xFF);
   }
 
-  public static void writeToBMP(String hostFilename, String shadowFilename, Shadow shadow) {
+  public static void writeToBMP(String filename, BMPHeader header, byte[] colorTable, List<Integer> pixels) {
     try (FileOutputStream fos = new FileOutputStream(filename)) {
+      byte[] signature = new byte[] { 'B', 'M' };
+      int fileSize = header.getFileSize();
+      int reservedHigh = header.getReservedH();
+      int reservedLow = header.getReservedL();
+      int dataOffset = header.getDataOffset();
+      fos.write(signature);
+      writeIntLE(fos, fileSize);
+      writeShortLE(fos, reservedHigh);
+      writeShortLE(fos, reservedLow);
+      writeIntLE(fos, dataOffset);
+
+      int size = header.getSize();
+      int width = header.getWidth();
+      int height = header.getHeight();
+      int planes = header.getPlanes();
+      int bitsPerPixel = header.getBitsPerPixel();
+      int compression = header.getCompression();
+      int imageSize = header.getImageSize();
+      int xPixelsPerM = header.getXPixelsPerM();
+      int yPixelsPerM = header.getYPixelsPerM();
+      int colorsUsed = header.getColorsUsed();
+      int importantColors = header.getImportantColors();
+
+      writeIntLE(fos, size);
+      writeIntLE(fos, width);
+      writeIntLE(fos, height);
+      writeShortLE(fos, planes);
+      writeShortLE(fos, bitsPerPixel);
+      writeIntLE(fos, compression);
+      writeIntLE(fos, imageSize);
+      writeIntLE(fos,  xPixelsPerM);
+      writeIntLE(fos, yPixelsPerM);
+      writeIntLE(fos, colorsUsed);
+      writeIntLE(fos, importantColors);
+
+      fos.write(colorTable);
       int rowSize = (width + 3) & ~3;
-      int imageSize = rowSize * height;
+      byte[] row = new byte[rowSize];
+      int pixelIndex = 0;
+      for (int y = height - 1; y >= 0; y--) {
+        Arrays.fill(row, (byte) 0);
+        for (int x = 0; x < width; x++) {
+          row[x] = (byte) (pixels.get(pixelIndex++) & 0xFF);
+        }
+        fos.write(row);
+      }
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void writeShadowToBMPHostImage(String hostFilename, String shadowFilename, Shadow shadow) {
+    try (FileOutputStream fos = new FileOutputStream(shadowFilename)) {
+      int rowSize = (shadow.getWidth()+ 3) & ~3;
+      int imageSize = rowSize * shadow.getHeight();
       int paletteSize = 256 * 4;
       int fileSize = 14 + 40 + paletteSize + imageSize;
+      int seed = RandomGenerator.getSeed();
+      int shadowIndex = shadow.getIndex();
+      int width = shadow.getWidth();
+      int height = shadow.getHeight();
 
       byte[] header = new byte[] { 'B', 'M' };
       fos.write(header);
@@ -149,14 +224,23 @@ public class BMPIO {
         fos.write(i); fos.write(i); fos.write(i); fos.write(0);
       }
 
-      int idx = 0;
+      int shadowPixelsIndex = 0;
+      int hostPixelsIndex = 0;
       byte[] row = new byte[rowSize];
+      BMPImage hostImage = readFromBMP(Path.of(hostFilename), true);
+      byte[] originalPixels = hostImage.getPixels();
+      List<Integer> shadowPixels = shadow.getPixels();
 
       for (int y = height - 1; y >= 0; y--) {
         Arrays.fill(row, (byte) 0);
         for (int x = 0; x < width; x++) {
-          if (idx < pixels.size()) {
-            row[x] = (byte) (pixels.get(idx++) & 0xFF);
+          // replace with k
+          if (x > 0 && x % 7 == 0){
+            row[x] = (byte) (shadowPixels.get(shadowPixelsIndex++) & 0xFF);
+            hostPixelsIndex++;
+          }
+          else{
+            row[x] = originalPixels[hostPixelsIndex++];
           }
         }
         fos.write(row);
