@@ -100,18 +100,21 @@ public class BMPIO {
 
       int numColors = numColorsMap.get(bitsPerPixel);
       int colorTableSize = numColors * 4;
-      byte[] colorTable = new byte[colorTableSize];
-      in.read(colorTable);
+      List<Integer> colorTable = new ArrayList<>(colorTableSize);
+      for (int i = 0; i < colorTableSize; i++){
+        colorTable.add(in.read());
+      }
 
       long n = in.skip(dataOffset - 54 - colorTableSize);
       if (n < dataOffset - 54 - colorTableSize) {
         throw new IOException("Corrupted BMP file");
       }
 
-      byte[] pixelData = new byte[imageSize];
-      if (in.read(pixelData) != imageSize) {
-        throw new IOException("Unexpected EOF while reading pixels");
-      }
+      //byte[] pixelData = new byte[imageSize];
+      List<Integer> pixelData =  ImageParsing.getGrayscaleBMPImageList(file.toFile());
+      //if (in.read(pixelData) != imageSize) {
+      //  throw new IOException("Unexpected EOF while reading pixels");
+      //}
       BMPHeader bmpHeader = new BMPHeader(fileSize, reservedHigh, reservedLow, dataOffset, width, height,bitsPerPixel, compression, imageSize, xPixelsPerM, yPixelsPerM, colorsUsed, importantColors);
       BMPImage image;
       if (hasSecret){
@@ -138,7 +141,7 @@ public class BMPIO {
     os.write((value >> 8) & 0xFF);
   }
 
-  public static void writeToBMP(String filename, BMPHeader header, byte[] colorTable, List<Integer> pixels) {
+  public static void writeToBMP(String filename, BMPHeader header, List<Integer> colorTable, List<Integer> pixels) {
     try (FileOutputStream fos = new FileOutputStream(filename)) {
       byte[] signature = new byte[] { 'B', 'M' };
       int fileSize = header.getFileSize();
@@ -175,7 +178,9 @@ public class BMPIO {
       writeIntLE(fos, colorsUsed);
       writeIntLE(fos, importantColors);
 
-      fos.write(colorTable);
+      for (int i = 0; i < colorTable.size(); i++){
+        fos.write(colorTable.get(i));
+      }
       int rowSize = (width + 3) & ~3;
       byte[] row = new byte[rowSize];
       int pixelIndex = 0;
@@ -228,24 +233,21 @@ public class BMPIO {
 
       int shadowPixelsIndex = 0;
       int hostPixelsIndex = 0;
-      byte[] row = new byte[rowSize];
       BMPImage hostImage = readFromBMP(Path.of(hostFilename), true);
-      byte[] originalPixels = hostImage.getPixels();
+      List<Integer> originalPixels = hostImage.getPixels();
       List<Integer> shadowPixels = shadow.getPixels();
 
       for (int y = height - 1; y >= 0; y--) {
-        Arrays.fill(row, (byte) 0);
         for (int x = 0; x < width; x++) {
           // replace with k
           if (x > 0 && x % 7 == 0){
-            row[x] = (byte) (shadowPixels.get(shadowPixelsIndex++) & 0xFF);
-            hostPixelsIndex++;
+            fos.write(shadowPixels.get(shadowPixelsIndex++));
           }
           else{
-            row[x] = originalPixels[hostPixelsIndex++];
+            fos.write(originalPixels.get(hostPixelsIndex));
           }
+          hostPixelsIndex++;
         }
-        fos.write(row);
       }
     } catch (IOException e) {
       throw new RuntimeException(e);

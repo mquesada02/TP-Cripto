@@ -98,7 +98,7 @@ public class ImageSharing {
         Shadow firstShadow = shadows.get(0);
         int seed = firstShadow.getSeed();
         int shadowSize = firstShadow.getPixels().size();
-        byte[] colorTable = firstHostImage.getColorTable();
+        List<Integer> colorTable = firstHostImage.getColorTable();
 
         List<Integer> image = new ArrayList<>();
 
