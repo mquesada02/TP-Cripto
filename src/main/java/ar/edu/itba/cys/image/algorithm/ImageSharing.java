@@ -31,6 +31,10 @@ public class ImageSharing {
         int seed = RandomGenerator.getSeed();
         int height = imageMatrix.length;
         int width = imageMatrix[0].length;
+        for (int i = 0; i < n; i++) {
+            Shadow shadow = new Shadow( i+1, seed, width / k, height / k);
+            shadowImages.add(shadow);
+        }
 
         for (int j = 0; j <= image.size() - k; j += k) {
             List<Integer> sharingSection = image.subList(j, j + k); // [a_0, a_1, ..., a_(r-1)]
@@ -50,9 +54,8 @@ public class ImageSharing {
             }
             //shadow default is for k=8
             for (int i = 0; i < n; i++) {
-                Shadow shadow = new Shadow(j/k +1, seed, width/k, height/k);
+                Shadow shadow = shadowImages.get(i);
                 shadow.getPixels().add(shadowPixels.get(i));
-                shadowImages.add(shadow);
             }
         }
 
@@ -77,7 +80,8 @@ public class ImageSharing {
             throw new RuntimeException(e);
         }
         for (int i = 0; i < n; i++) {
-            String hostFilename = fileSet.get(i);
+            String hostname = fileSet.get(i);
+            String hostFilename = String.format("%s/%s%s", hostsDirectory,hostname, BMPIO.FILE_EXTENSION);
             String shadowFilename = String.format("%sssd%s", hostFilename, BMPIO.FILE_EXTENSION);
             Shadow shadow = shadowImages.get(i);
             BMPIO.writeShadowToBMPHostImage(hostFilename, shadowFilename, shadow);
