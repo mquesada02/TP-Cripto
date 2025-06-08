@@ -32,7 +32,7 @@ public class ImageSharing {
         int height = imageMatrix.length;
         int width = imageMatrix[0].length;
         for (int i = 0; i < n; i++) {
-            Shadow shadow = new Shadow( i+1, seed, width / k, height / k);
+            Shadow shadow = new Shadow( i+1, seed, width, height);
             shadowImages.add(shadow);
         }
 
@@ -82,7 +82,7 @@ public class ImageSharing {
         for (int i = 0; i < n; i++) {
             String hostname = fileSet.get(i);
             String hostFilename = String.format("%s/%s%s", hostsDirectory,hostname, BMPIO.FILE_EXTENSION);
-            String shadowFilename = String.format("%sssd%s", hostFilename, BMPIO.FILE_EXTENSION);
+            String shadowFilename = String.format("%s/%sssd%s", hostsDirectory, hostname, BMPIO.FILE_EXTENSION);
             Shadow shadow = shadowImages.get(i);
             BMPIO.writeShadowToBMPHostImage(hostFilename, shadowFilename, shadow);
         }

@@ -101,19 +101,23 @@ public class ImageParsing {
     Size imageSize = getImageSizeForBMP(secret);
     int width = imageSize.getWidth(), height = imageSize.getHeight();
     int[][] imageBitMap = new int[height][width];
+    int dataOffset = 53;
     try (FileInputStream fileInputStream = new FileInputStream(secret)) {
       int counter = 0;
       while ((fileInputStream.read()) != -1) {
-        if (counter == 53) {
-          for (int row = 0; row < height; row++) {
+        if (counter == dataOffset-1) {
+          for (int row = height-1; row >= 0; row--) {
             for (int col = 0; col < width; col++) {
-              imageBitMap[row][col] = fileInputStream.read();
+              imageBitMap[height-1 - row][col] = fileInputStream.read();
             }
           }
           fileInputStream.close();
           return imageBitMap;
-        } else {
-          counter++;
+        } else if (counter == 9) {
+            dataOffset = BMPIO.readIntLE(fileInputStream);
+            counter +=4;
+        } else{
+            counter++;
         }
       }
     } catch (IOException e) {

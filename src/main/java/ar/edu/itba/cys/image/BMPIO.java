@@ -56,7 +56,8 @@ public class BMPIO {
       throw new IOException("Unexpected end of file when reading int.");
     }
 
-    return (b1 & 0xFF) | ((b2 & 0xFF) << 8) | ((b3 & 0xFF) << 16) | ((b4 & 0xFF) << 24);
+    //return (b1 & 0xFF) | ((b2 & 0xFF) << 8) | ((b3 & 0xFF) << 16) | ((b4 & 0xFF) << 24);
+    return ((b4 & 0xFF) << 24) | ((b3 & 0xFF) << 16) | ((b2 & 0xFF) << 8) | (b1 & 0xFF);
   }
 
   public static BMPImage readFromBMP(Path file, Boolean hasSecret) {
@@ -78,8 +79,8 @@ public class BMPIO {
       int compression = ((header[33] & 0xFF) << 24) | ((header[32] & 0xFF) << 16) | ((header[31] & 0xFF) << 8) | (header[30] & 0xFF);
       int xPixelsPerM = ((header[41] & 0xFF) << 24) | ((header[40] & 0xFF) << 16) | ((header[39] & 0xFF) << 8) | (header[38] & 0xFF);
       int yPixelsPerM = ((header[45] & 0xFF) << 24) | ((header[44] & 0xFF) << 16) | ((header[43] & 0xFF) << 8) | (header[42] & 0xFF);
-      int colorsUsed = ((header[45] & 0xFF) << 24) | ((header[44] & 0xFF) << 16) | ((header[43] & 0xFF) << 8) | (header[42] & 0xFF);
-      int importantColors = ((header[49] & 0xFF) << 24) | ((header[48] & 0xFF) << 16) | ((header[47] & 0xFF) << 8) | (header[46] & 0xFF);
+      int colorsUsed= ((header[49] & 0xFF) << 24) | ((header[48] & 0xFF) << 16) | ((header[47] & 0xFF) << 8) | (header[46] & 0xFF);
+      int importantColors = ((header[53] & 0xFF) << 24) | ((header[52] & 0xFF) << 16) | ((header[51] & 0xFF) << 8) | (header[50] & 0xFF);
 
       int bitDepth = ((header[29] & 0xFF) << 8) | (header[28] & 0xFF);
       if (bitDepth != 8) {
@@ -197,58 +198,118 @@ public class BMPIO {
     }
   }
 
+  public static List<Integer> convertToBits(List<Integer> input) {
+    List<Integer> bits = new ArrayList<>();
+    for (int number : input) {
+      for (int i = Byte.SIZE - 1; i >= 0; i--) {
+        bits.add((number >> i) & 1);
+      }
+    }
+    return bits;
+  }
+
+  public static List<Byte> convert(List<Integer> ints) {
+    List<Byte> bytes = new ArrayList<>();
+    for (int i : ints) {
+      bytes.add((byte) (i & 0xFF));
+    }
+    return bytes;
+  }
+
+
+  public static List<Integer> convertFromBits(List<Integer> bits) {
+    if (bits.size() % Byte.SIZE != 0) {
+      throw new IllegalArgumentException("Bit list length must be a multiple of 32.");
+    }
+
+    List<Integer> result = new ArrayList<>();
+    for (int i = 0; i < bits.size(); i += Byte.SIZE) {
+      int value = 0;
+      for (int j = 0;j < Byte.SIZE; j++) {
+        value = (value << 1) | bits.get(i + j);
+      }
+      result.add(value);
+    }
+    return result;
+  }
+
   public static void writeShadowToBMPHostImage(String hostFilename, String shadowFilename, Shadow shadow) {
     try (FileOutputStream fos = new FileOutputStream(shadowFilename)) {
-      int rowSize = (shadow.getWidth()+ 3) & ~3;
-      int imageSize = rowSize * shadow.getHeight();
-      int paletteSize = 256 * 4;
-      int fileSize = 14 + 40 + paletteSize + imageSize;
-      int seed = RandomGenerator.getSeed();
-      int shadowIndex = shadow.getIndex();
-      int width = shadow.getWidth();
-      int height = shadow.getHeight();
-
-      byte[] header = new byte[] { 'B', 'M' };
-      fos.write(header);
+      BMPImage hostImage = readFromBMP(Path.of(hostFilename), true);
+      BMPHeader header = hostImage.getHeader();
+      List<Integer> colorTable = hostImage.getColorTable();
+      byte[] signature = new byte[] { 'B', 'M' };
+      int fileSize = header.getFileSize();
+      int reservedHigh = header.getReservedH();
+      int reservedLow = header.getReservedL();
+      int dataOffset = header.getDataOffset();
+      fos.write(signature);
       writeIntLE(fos, fileSize);
-      writeShortLE(fos, seed);
-      writeShortLE(fos, shadowIndex);
-      writeIntLE(fos, 14 + 40 + paletteSize);
+      writeShortLE(fos, shadow.getSeed());
+      writeShortLE(fos, shadow.getIndex());
+      writeIntLE(fos, dataOffset);
 
-      writeIntLE(fos, 40);
+      int size = header.getSize();
+      int width = header.getWidth();
+      int height = header.getHeight();
+      int planes = header.getPlanes();
+      int bitsPerPixel = header.getBitsPerPixel();
+      int compression = header.getCompression();
+      int imageSize = header.getImageSize();
+      int xPixelsPerM = header.getXPixelsPerM();
+      int yPixelsPerM = header.getYPixelsPerM();
+      int colorsUsed = header.getColorsUsed();
+      int importantColors = header.getImportantColors();
+
+      writeIntLE(fos, size);
       writeIntLE(fos, width);
       writeIntLE(fos, height);
-      writeShortLE(fos, 1);
-      writeShortLE(fos, 8);
-      writeIntLE(fos, 0);
+      writeShortLE(fos, planes);
+      writeShortLE(fos, bitsPerPixel);
+      writeIntLE(fos, compression);
       writeIntLE(fos, imageSize);
-      writeIntLE(fos, 2835);
-      writeIntLE(fos, 2835);
-      writeIntLE(fos, 256);
-      writeIntLE(fos, 0);
+      writeIntLE(fos,  xPixelsPerM);
+      writeIntLE(fos, yPixelsPerM);
+      writeIntLE(fos, colorsUsed);
+      writeIntLE(fos, importantColors);
 
-      for (int i = 0; i < 256; i++) {
-        fos.write(i); fos.write(i); fos.write(i); fos.write(0);
+      for (int i = 0; i < colorTable.size(); i++){
+        fos.write(colorTable.get(i));
       }
 
-      int shadowPixelsIndex = 0;
-      int hostPixelsIndex = 0;
-      BMPImage hostImage = readFromBMP(Path.of(hostFilename), true);
       List<Integer> originalPixels = hostImage.getPixels();
       List<Integer> shadowPixels = shadow.getPixels();
 
-      for (int y = height - 1; y >= 0; y--) {
-        for (int x = 0; x < width; x++) {
-          // replace with k
-          if (x > 0 && x % 7 == 0){
-            fos.write(shadowPixels.get(shadowPixelsIndex++));
-          }
-          else{
-            fos.write(originalPixels.get(hostPixelsIndex));
-          }
-          hostPixelsIndex++;
-        }
+      // iterar cada byte del original
+      List<Integer> originalPixelsBits = convertToBits(originalPixels);
+      List<Integer> shadowPixelsBits = convertToBits(shadowPixels);
+
+      for (int hostPixelsIndex= Byte.SIZE-1, shadowPixelIndex = 0; hostPixelsIndex < originalPixelsBits.size() && shadowPixelIndex < shadowPixelsBits.size(); hostPixelsIndex+= Byte.SIZE, shadowPixelIndex++){
+          originalPixelsBits.set(hostPixelsIndex, shadowPixelsBits.get(shadowPixelIndex));
       }
+
+      List<Integer> finalIntegerPixels = convertFromBits(originalPixelsBits);
+      for (Integer pixel : finalIntegerPixels){
+        fos.write(pixel);
+      }
+
+//      for (int y = height - 1; y >= 0; y--) {
+//        for (int x = 0; x < width; x++) {
+//          // replace with k
+//          if (x > 0 && x % 7 == 0 && shadowPixelsIndex < shadowPixels.size()){
+//          //if (x > 0 && x % 7 == 0){
+//            int shadowPixel = shadowPixels.get(shadowPixelsIndex++);
+//            String binaryStringShadow = Integer.toBinaryString(shadowPixel);
+//            String substring = binaryString.substring(0, binaryString.length()-1);
+//            substring.concat()
+//            //fos.write( );
+//          }
+//          else{
+//            fos.write(originalPixels.get(hostPixelsIndex));
+//          }
+//          hostPixelsIndex++;
+//        }
+//      }
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
