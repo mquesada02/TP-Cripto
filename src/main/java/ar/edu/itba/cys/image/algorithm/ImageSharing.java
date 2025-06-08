@@ -55,7 +55,7 @@ public class ImageSharing {
             //shadow default is for k=8
             for (int i = 0; i < n; i++) {
                 Shadow shadow = shadowImages.get(i);
-                shadow.getPixels().add(shadowPixels.get(i));
+                shadow.getBitPixels().add(shadowPixels.get(i));
             }
         }
 
@@ -82,11 +82,19 @@ public class ImageSharing {
         for (int i = 0; i < n; i++) {
             String hostname = fileSet.get(i);
             String hostFilename = String.format("%s/%s%s", hostsDirectory,hostname, BMPIO.FILE_EXTENSION);
-            String shadowFilename = String.format("%s/%sssd%s", hostsDirectory, hostname, BMPIO.FILE_EXTENSION);
+            String shadowFilename = String.format("ssd/%sssd%s", hostname, BMPIO.FILE_EXTENSION);
             Shadow shadow = shadowImages.get(i);
             BMPIO.writeShadowToBMPHostImage(hostFilename, shadowFilename, shadow);
         }
     }
+    public static int binaryToInteger(byte[] numbers) {
+        int result = 0;
+        for(int i=numbers.length - 1; i>=0; i--)
+            if(numbers[i]== 1)
+                result += Math.pow(2, (numbers.length-i - 1));
+        return result;
+    }
+
 
     public static void decode(int k, String directory, File outputFile) {
         Pair<List<BMPHostImage>,List<Shadow>> pairHostShadow = BMPIO.getShadowForEachHostImage(directory);
@@ -97,19 +105,30 @@ public class ImageSharing {
         BMPHeader hostHeader = firstHostImage.getHeader();
         Shadow firstShadow = shadows.get(0);
         int seed = firstShadow.getSeed();
-        int shadowSize = firstShadow.getPixels().size();
+        int shadowSize = firstShadow.getBitPixels().size();
         List<Integer> colorTable = firstHostImage.getColorTable();
 
         List<Integer> image = new ArrayList<>();
+        byte[] shadowPixel = new byte[Byte.SIZE];
 
-        for (int i = 0; i < shadowSize; i++) {
+        //int bitCount = 0;
+        int pixelsCount = 0;
+        for (int i = 0; i < shadowSize; i++){
             List<Integer> ys = new ArrayList<>(k);
-            for (int j = 0; j < k; j++) {
-                int pixel = shadows.get(j).getPixels().get(i);
-                ys.add(pixel);
+            //for (int pixelCount = 0; pixelCount < k; pixelCount++){
+                for (int j = 0; j < k; j++) {
+                    int bit = shadows.get(j).getBitPixels().get(i);
+                    shadowPixel[j] = (byte) bit;
+                }
+                ys.add(binaryToInteger(shadowPixel));
+                pixelsCount++;
+            //}
+            if (pixelsCount > 0 && pixelsCount % k == 0){
+                List<Integer> coefficients = LagrangianInterpolation.getCoefficients(ys);
+                ys.clear();
+                image.addAll(coefficients);
             }
-            List<Integer> coefficients = LagrangianInterpolation.getCoefficients(ys);
-            image.addAll(coefficients);
+            System.out.println(pixelsCount);
         }
 
         Random rand = RandomGenerator.getRandom();
@@ -123,6 +142,6 @@ public class ImageSharing {
             secretImage.add(image.get(i) ^ pixels.get(i));
         }
 
-        BMPIO.writeToBMP(outputFile.getPath(), hostHeader, colorTable, pixels);
+        BMPIO.writeToBMP(outputFile.getPath(), hostHeader, colorTable, secretImage);
     }
 }

@@ -22,7 +22,7 @@ public class BMPHostImage extends BMPImage {
     }
 
     private List<Integer> setShadowInPixels(List<Integer> originalPixels, int width, int height, Shadow shadow){
-        List<Integer> shadowPixels = shadow.getPixels();
+        List<Integer> shadowPixels = shadow.getBitPixels();
         List<Integer> finalPixels = new ArrayList<>(height * width);
         int shadowPixelsIndex = 0;
         int hostPixelsIndex = 0;
@@ -40,24 +40,32 @@ public class BMPHostImage extends BMPImage {
         return finalPixels;
     }
 
+    public int binaryToInteger(byte[] numbers) {
+        int result = 0;
+        for(int i=numbers.length - 1; i>=0; i--)
+            if(numbers[i]== 1)
+                result += Math.pow(2, (numbers.length-i - 1));
+        return result;
+    }
     public Shadow getShadow(){
         List<Integer> pixelData = this.getPixels();
+        List<Integer> pixelByteData = BMPIO.convertToBits(pixelData);
         BMPHeader header = this.getHeader();
 
         int seed = header.getReservedH();
         int shadowIndex = header.getReservedL();
         int height = header.getHeight();
         int width = header.getWidth();
+        System.out.println(width);
+        System.out.println(height);
         int rowSize = ((width + 3) / 4) * 4;
         List<Integer> shadowPixels = new ArrayList<>(width * height);
-        for (int y = height - 1; y >= 0; y--) {
-            int rowStart = y * rowSize;
-            for (int x = 0; x < width; x++) {
-                if (x> 0 && x % 7 == 0) {
-                    int gray = pixelData.get(rowStart + x);
-                    shadowPixels.add(gray);
-                }
-            }
+        for (int x = Byte.SIZE-1; x < height * width * Byte.SIZE; x+=Byte.SIZE) {
+            //int rowStart = y * rowSize * Byte.SIZE;
+            //for (int x = 0; x < width * Byte.SIZE; x++) {
+                    int grayBit = pixelByteData.get(x);
+                    shadowPixels.add(grayBit);
+            //}
         }
         return new Shadow(shadowIndex, seed, width, height, shadowPixels);
     }

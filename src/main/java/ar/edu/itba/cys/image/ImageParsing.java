@@ -6,6 +6,7 @@ import ar.edu.itba.cys.utils.Size;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -101,29 +102,37 @@ public class ImageParsing {
     Size imageSize = getImageSizeForBMP(secret);
     int width = imageSize.getWidth(), height = imageSize.getHeight();
     int[][] imageBitMap = new int[height][width];
-    int dataOffset = 53;
+
     try (FileInputStream fileInputStream = new FileInputStream(secret)) {
-      int counter = 0;
-      while ((fileInputStream.read()) != -1) {
-        if (counter == dataOffset-1) {
-          for (int row = height-1; row >= 0; row--) {
-            for (int col = 0; col < width; col++) {
-              imageBitMap[height-1 - row][col] = fileInputStream.read();
-            }
-          }
-          fileInputStream.close();
-          return imageBitMap;
-        } else if (counter == 9) {
-            dataOffset = BMPIO.readIntLE(fileInputStream);
-            counter +=4;
-        } else{
-            counter++;
-        }
+      byte[] header = new byte[54];
+      if (fileInputStream.read(header) != 54) {
+        throw new IOException("Invalid BMP header length");
       }
+
+      int dataOffset = ((header[13] & 0xFF) << 24) | ((header[12] & 0xFF) << 16) |
+              ((header[11] & 0xFF) << 8) | (header[10] & 0xFF);
+
+      fileInputStream.skip(dataOffset - 54);
+
+      int rowPadding = (4 - (width % 4)) % 4;
+
+      for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width; col++) {
+          int pixel = fileInputStream.read();
+          if (pixel == -1) throw new IOException("Unexpected end of file");
+          imageBitMap[row][col] = pixel;
+        }
+        // Skip padding bytes
+        fileInputStream.skip(rowPadding);
+      }
+
+      return imageBitMap;
+
     } catch (IOException e) {
       System.err.println("Error reading secret: " + e.getMessage());
       throw new RuntimeException(e);
     }
-    return imageBitMap;
   }
+
+
 }

@@ -2,8 +2,6 @@ package ar.edu.itba.cys.image;
 
 import ar.edu.itba.cys.image.algorithm.Shadow;
 import ar.edu.itba.cys.utils.Pair;
-import ar.edu.itba.cys.utils.RandomGenerator;
-import ar.edu.itba.cys.utils.Size;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -24,9 +22,12 @@ public class BMPIO {
     for (Path file : files) {
       BMPHostImage image = (BMPHostImage) readFromBMP(file, true);
       hosts.add(image);
+      System.out.println(image.getPixels().size());
       Shadow shadow = image.getShadow();
+      System.out.println(shadow.getBitPixels().size());
       shadows.add(shadow);
     }
+    shadows.sort(Comparator.comparingInt(Shadow::getIndex));
     return new Pair<>(hosts, shadows);
   }
 
@@ -278,7 +279,7 @@ public class BMPIO {
       }
 
       List<Integer> originalPixels = hostImage.getPixels();
-      List<Integer> shadowPixels = shadow.getPixels();
+      List<Integer> shadowPixels = shadow.getBitPixels();
 
       // iterar cada byte del original
       List<Integer> originalPixelsBits = convertToBits(originalPixels);

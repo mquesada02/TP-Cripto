@@ -8,14 +8,14 @@ public class Shadow {
     private final int seed;
     private final int height;
     private final int width;
-    private List<Integer> pixels = new ArrayList<>();
+    private List<Integer> bitPixels = new ArrayList<>();
 
-    public Shadow(int index, int seed, int width, int height, List<Integer> pixels) {
+    public Shadow(int index, int seed, int width, int height, List<Integer> bitPixels) {
         this.index = index;
         this.seed = seed;
         this.height = height;
         this.width = width;
-        this.pixels = pixels;
+        this.bitPixels = bitPixels;
     }
 
     public Shadow(int index, int seed, int width, int height) {
@@ -25,8 +25,8 @@ public class Shadow {
         this.width = width;
     }
 
-    public List<Integer> getPixels() {
-        return pixels;
+    public List<Integer> getBitPixels() {
+        return bitPixels;
     }
 
     public int getIndex() {
