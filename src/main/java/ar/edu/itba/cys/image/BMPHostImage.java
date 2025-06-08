@@ -56,8 +56,6 @@ public class BMPHostImage extends BMPImage {
         int shadowIndex = header.getReservedL();
         int height = header.getHeight();
         int width = header.getWidth();
-        System.out.println(width);
-        System.out.println(height);
         int rowSize = ((width + 3) / 4) * 4;
         List<Integer> shadowPixels = new ArrayList<>(width * height);
         for (int x = Byte.SIZE-1; x < height * width * Byte.SIZE; x+=Byte.SIZE) {

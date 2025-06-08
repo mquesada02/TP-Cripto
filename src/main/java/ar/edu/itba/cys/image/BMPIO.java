@@ -22,9 +22,7 @@ public class BMPIO {
     for (Path file : files) {
       BMPHostImage image = (BMPHostImage) readFromBMP(file, true);
       hosts.add(image);
-      System.out.println(image.getPixels().size());
       Shadow shadow = image.getShadow();
-      System.out.println(shadow.getBitPixels().size());
       shadows.add(shadow);
     }
     shadows.sort(Comparator.comparingInt(Shadow::getIndex));

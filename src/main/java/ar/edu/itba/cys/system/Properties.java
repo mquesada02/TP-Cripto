@@ -73,7 +73,7 @@ public record Properties(Mode mode, File secret, int k, int n, String directory)
       throw new IllegalOptionForSelectedModeException("n", mode);
     }
 
-    String dir = System.getProperty("dir", "hosts");
+    String dir = System.getProperty("dir", ".");
     int nValue;
     if (n != null) {
       nValue = Integer.parseInt(n);

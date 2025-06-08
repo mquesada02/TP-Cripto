@@ -1,8 +1,9 @@
 package ar.edu.itba.cys.math;
 
+import ar.edu.itba.cys.utils.Pair;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 
 public class LagrangianInterpolation {
 
@@ -16,9 +17,10 @@ public class LagrangianInterpolation {
     return acum % RemainderTable.PRIME_MOD;
   }
 
-  public static List<Integer> getCoefficients(List<Integer> ys) {
+  public static List<Integer> getCoefficients(List<Pair<Integer, Integer>> pairs) {
+    List<Integer> xs = pairs.stream().map(Pair::getFirst).toList();
+    List<Integer> ys = pairs.stream().map(Pair::getSecond).toList();
     int n = ys.size();
-    List<Integer> xs = IntStream.rangeClosed(1, n).boxed().toList();
     int[] result = new int[n];
 
     for (int j = 0; j < n; j++) {

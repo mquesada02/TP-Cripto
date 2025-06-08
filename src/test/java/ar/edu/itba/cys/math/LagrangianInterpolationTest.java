@@ -1,5 +1,6 @@
 package ar.edu.itba.cys.math;
 
+import ar.edu.itba.cys.utils.Pair;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
@@ -13,8 +14,12 @@ public class LagrangianInterpolationTest {
   @Test
   public void interpolateIdentityFiveValues() {
     final int totalValues = 5;
-    List<Integer> ys = IntStream.rangeClosed(1, totalValues).boxed().toList();
-    List<Integer> coefficients = LagrangianInterpolation.getCoefficients(ys);
+    List<Pair<Integer, Integer>> values = new ArrayList<>(totalValues + 1);
+    for (int i = 1; i <= totalValues; i++) {
+      Pair<Integer, Integer> pair = Pair.of(i, i);
+      values.add(pair);
+    }
+    List<Integer> coefficients = LagrangianInterpolation.getCoefficients(values);
     final List<Integer> expectedCoefficients = new ArrayList<>(Collections.nCopies(totalValues, 0));
     expectedCoefficients.set(1, 1);
     assertEquals(expectedCoefficients, coefficients);
@@ -23,8 +28,12 @@ public class LagrangianInterpolationTest {
   @Test
   public void interpolateIdentityModValues() {
     final int totalValues = RemainderTable.PRIME_MOD;
-    List<Integer> ys = IntStream.rangeClosed(1, totalValues).boxed().toList();
-    List<Integer> coefficients = LagrangianInterpolation.getCoefficients(ys);
+    List<Pair<Integer, Integer>> values = new ArrayList<>(totalValues + 1);
+    for (int i = 1; i <= totalValues; i++) {
+      Pair<Integer, Integer> pair = Pair.of(i, i);
+      values.add(pair);
+    }
+    List<Integer> coefficients = LagrangianInterpolation.getCoefficients(values);
     final List<Integer> expectedCoefficients = new ArrayList<>(Collections.nCopies(totalValues, 0));
     expectedCoefficients.set(1, 1);
     assertEquals(expectedCoefficients, coefficients);
@@ -33,8 +42,12 @@ public class LagrangianInterpolationTest {
   @Test
   public void interpolateIdentityMoreThanModValues() {
     final int totalValues = RemainderTable.PRIME_MOD + 1;
-    List<Integer> ys = IntStream.rangeClosed(1, totalValues).boxed().toList();
-    List<Integer> coefficients = LagrangianInterpolation.getCoefficients(ys);
+    List<Pair<Integer, Integer>> values = new ArrayList<>(totalValues + 1);
+    for (int i = 1; i <= totalValues; i++) {
+      Pair<Integer, Integer> pair = Pair.of(i, i);
+      values.add(pair);
+    }
+    List<Integer> coefficients = LagrangianInterpolation.getCoefficients(values);
     final List<Integer> expectedCoefficients = new ArrayList<>(Collections.nCopies(totalValues, 1));
     expectedCoefficients.set(0, 0);
     assertEquals(expectedCoefficients, coefficients);
