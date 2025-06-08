@@ -14,8 +14,6 @@ public class Main {
         Properties properties = Properties.getProperties();
         Mode mode = properties.mode();
         int k = properties.k();
-        int seed = RandomGenerator.URIS_FAVORITE_NUMBER;
-        RandomGenerator.setSeed(seed);
         File secretFile = properties.secret();
         String output = properties.directory();
         if (mode == Mode.DISTRIBUTE) {

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class GaussianInterpolation implements ModularInterpolation {
+public class GaussianInterpolation {
 
   public static List<Integer> getCoefficients(List<Integer> ys) {
     int r = ys.size();

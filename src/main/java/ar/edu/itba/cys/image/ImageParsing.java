@@ -42,21 +42,6 @@ public class ImageParsing {
   }
 
   /**
-   * Generates a permutation vector from XORing the original <code>secret</code> image list with a list of random ints
-   * @param secret file to decode
-   * @return a {@link List} of {@link Integer} containing the bytes from the grayscale image XOR'd with random numbers
-   */
-  public static List<Integer> getXORGrayscaleBMPImageList(File secret) {
-    Random rand = RandomGenerator.getRandom();
-    List<Integer> secretImage = getGrayscaleBMPImageList(secret);
-    List<Integer> randomNumbers = rand.ints(secretImage.size()).boxed().toList();
-    for (int i = 0; i < secretImage.size(); i++) {
-        secretImage.set(i, secretImage.get(i) ^ randomNumbers.get(i));
-    }
-    return secretImage;
-  }
-
-  /**
    * Convert a matrix into a list, appending each row sequentially
    * @param matrix any int array of arrays
    * @return a flattened {@link List} of {@link Integer}
@@ -82,11 +67,14 @@ public class ImageParsing {
    * @return a <code>int[][]</code> matrix containing the bytes from the grayscale image XOR'd with random numbers
    */
   public static int[][] getXORGrayscaleBMPImage(File secret) {
+    int seed = RandomGenerator.URIS_FAVORITE_NUMBER;
+    RandomGenerator.setSeed(seed);
     Random rand = RandomGenerator.getRandom();
     int[][] secretImage = getGrayscaleBMPImage(secret);
     for (int i = 0; i < secretImage.length; i++) {
       for (int j = 0; j < secretImage[i].length; j++) {
-        secretImage[i][j] ^= rand.nextInt(256);
+        int r = rand.nextInt(256);
+        secretImage[i][j] ^= r;
       }
     }
     return secretImage;

@@ -5,7 +5,6 @@ import ar.edu.itba.cys.image.BMPHostImage;
 import ar.edu.itba.cys.image.BMPIO;
 import ar.edu.itba.cys.image.ImageParsing;
 import ar.edu.itba.cys.math.LagrangianInterpolation;
-import ar.edu.itba.cys.math.ModularInterpolation;
 import ar.edu.itba.cys.utils.Pair;
 import ar.edu.itba.cys.utils.RandomGenerator;
 
@@ -22,7 +21,7 @@ import java.util.stream.IntStream;
 public class ImageSharing {
 
     private static List<Integer> getShadowPixels(int n, List<Integer> coefficients) {
-        return IntStream.rangeClosed(1, n).map(x -> ModularInterpolation.interpolate(x, coefficients)).boxed().collect(Collectors.toList()); // [f_j(1), ..., f_j(n)]
+        return IntStream.rangeClosed(1, n).map(x -> LagrangianInterpolation.interpolate(x, coefficients)).boxed().collect(Collectors.toList()); // [f_j(1), ..., f_j(n)]
     }
 
     public static void encode(int k, int n, int[][] imageMatrix, String hostsDirectory) {
@@ -87,11 +86,12 @@ public class ImageSharing {
             BMPIO.writeShadowToBMPHostImage(hostFilename, shadowFilename, shadow);
         }
     }
-    public static int binaryToInteger(byte[] numbers) {
+
+    public static int binaryToInteger(List<Integer> numbers) {
         int result = 0;
-        for(int i=numbers.length - 1; i>=0; i--)
-            if(numbers[i]== 1)
-                result += Math.pow(2, (numbers.length-i - 1));
+        for(int i=numbers.size() - 1; i>=0; i--)
+            if(numbers.get(i)== 1)
+                result += (int) Math.pow(2, (numbers.size()-i - 1));
         return result;
     }
 
@@ -109,39 +109,24 @@ public class ImageSharing {
         List<Integer> colorTable = firstHostImage.getColorTable();
 
         List<Integer> image = new ArrayList<>();
-        byte[] shadowPixel = new byte[Byte.SIZE];
 
-        //int bitCount = 0;
-        int pixelsCount = 0;
-        for (int i = 0; i < shadowSize; i++){
+        for (int i = 0; i < shadowSize; i+=8){
             List<Integer> ys = new ArrayList<>(k);
-            //for (int pixelCount = 0; pixelCount < k; pixelCount++){
-                for (int j = 0; j < k; j++) {
-                    int bit = shadows.get(j).getBitPixels().get(i);
-                    shadowPixel[j] = (byte) bit;
-                }
-                ys.add(binaryToInteger(shadowPixel));
-                pixelsCount++;
-            //}
-            if (pixelsCount > 0 && pixelsCount % k == 0){
-                List<Integer> coefficients = LagrangianInterpolation.getCoefficients(ys);
-                ys.clear();
-                image.addAll(coefficients);
+            for (int j = 0; j < k; j++) {
+                Shadow shadow = shadows.get(j);
+                List<Integer> subBits = shadow.getBitPixels().subList(i, i+8);
+                int byteValue = binaryToInteger(subBits);
+                ys.add(byteValue);
             }
-            System.out.println(pixelsCount);
+            List<Integer> coefficients = LagrangianInterpolation.getCoefficients(ys);
+            image.addAll(coefficients);
         }
-
+        RandomGenerator.setSeed(seed);
         Random rand = RandomGenerator.getRandom();
-        rand.setSeed(seed);
-        List<Integer> pixels = new ArrayList<>(image.size());
-        for (int i = 0; i < image.size(); i++) {
-            pixels.add(rand.nextInt(256));
-        }
         List<Integer> secretImage = new ArrayList<>();
-        for (int i = 0; i < image.size(); i++) {
-            secretImage.add(image.get(i) ^ pixels.get(i));
-        }
-
+      for (Integer integer : image) {
+        secretImage.add(integer ^ rand.nextInt(256));
+      }
         BMPIO.writeToBMP(outputFile.getPath(), hostHeader, colorTable, secretImage);
     }
 }

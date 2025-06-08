@@ -4,7 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-public class LagrangianInterpolation implements ModularInterpolation {
+public class LagrangianInterpolation {
+
+  public static int interpolate(int x, List<Integer> coefficients) {
+    int acum = 0;
+    int xAcum = 1;
+    for (int coefficient : coefficients) {
+      acum = (acum + (coefficient * xAcum) % RemainderTable.PRIME_MOD) % RemainderTable.PRIME_MOD;
+      xAcum = (xAcum * x) % RemainderTable.PRIME_MOD;
+    }
+    return acum % RemainderTable.PRIME_MOD;
+  }
 
   public static List<Integer> getCoefficients(List<Integer> ys) {
     int n = ys.size();
