@@ -142,7 +142,14 @@ public class ImageSharing {
             for (int j = 0; j < k; j++) {
                 Shadow shadow = shadows.get(j);
                 int index = shadow.getIndex();
-                List<Integer> subBits = shadow.getBitPixels().subList(i, i+8);
+                int rest = shadowSize - i;
+                List<Integer> subBits;
+                if (rest > 8) {
+                    subBits = shadow.getBitPixels().subList(i, i + 8);
+                }else{
+                    subBits = shadow.getBitPixels().subList(i, shadowSize);
+                    subBits.addAll(Collections.nCopies(8-rest, 0));
+                }
                 int byteValue = binaryToInteger(subBits);
                 ys.add(Pair.of(index, byteValue));
             }
