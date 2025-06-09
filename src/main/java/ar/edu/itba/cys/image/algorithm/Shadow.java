@@ -6,23 +6,23 @@ import java.util.List;
 public class Shadow {
     private final int index;
     private final int seed;
-    private final int height;
-    private final int width;
+    private final int secretImageHeight;
+    private final int secretImageWidth;
     private List<Integer> bitPixels = new ArrayList<>();
 
-    public Shadow(int index, int seed, int width, int height, List<Integer> bitPixels) {
+    public Shadow(int index, int seed, int secretImageWidth, int secretImageHeight, List<Integer> bitPixels) {
         this.index = index;
         this.seed = seed;
-        this.height = height;
-        this.width = width;
+        this.secretImageHeight = secretImageHeight;
+        this.secretImageWidth = secretImageWidth;
         this.bitPixels = bitPixels;
     }
 
-    public Shadow(int index, int seed, int width, int height) {
+    public Shadow(int index, int seed, int secretImageWidth, int secretImageHeight) {
         this.index = index;
         this.seed = seed;
-        this.height = height;
-        this.width = width;
+        this.secretImageHeight = secretImageHeight;
+        this.secretImageWidth = secretImageWidth;
     }
 
     public List<Integer> getBitPixels() {
@@ -33,12 +33,12 @@ public class Shadow {
         return index;
     }
 
-    public int getHeight() {
-        return height;
+    public int getSecretImageHeight() {
+        return secretImageHeight;
     }
 
-    public int getWidth() {
-        return width;
+    public int getSecretImageWidth() {
+        return secretImageWidth;
     }
 
     public int getSeed() {
