@@ -1,12 +1,10 @@
 package ar.edu.itba.cys.image;
 
-import ar.edu.itba.cys.utils.RandomGenerator;
 import ar.edu.itba.cys.utils.Size;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -66,10 +64,9 @@ public class ImageParsing {
    * @param secret file to decode
    * @return a <code>int[][]</code> matrix containing the bytes from the grayscale image XOR'd with random numbers
    */
-  public static int[][] getXORGrayscaleBMPImage(File secret) {
-    int seed = RandomGenerator.URIS_FAVORITE_NUMBER;
-    RandomGenerator.setSeed(seed);
-    Random rand = RandomGenerator.getRandom();
+  public static int[][] getXORGrayscaleBMPImage(File secret, int seed) {
+    Random rand = new Random();
+    rand.setSeed(seed);
     int[][] secretImage = getGrayscaleBMPImage(secret);
     for (int i = 0; i < secretImage.length; i++) {
       for (int j = 0; j < secretImage[i].length; j++) {

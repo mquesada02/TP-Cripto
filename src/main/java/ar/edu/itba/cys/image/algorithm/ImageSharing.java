@@ -3,7 +3,6 @@ package ar.edu.itba.cys.image.algorithm;
 import ar.edu.itba.cys.image.*;
 import ar.edu.itba.cys.math.LagrangianInterpolation;
 import ar.edu.itba.cys.utils.Pair;
-import ar.edu.itba.cys.utils.RandomGenerator;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,6 +10,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -21,10 +21,9 @@ public class ImageSharing {
         return IntStream.rangeClosed(1, n).map(x -> LagrangianInterpolation.interpolate(x, coefficients)).boxed().collect(Collectors.toList()); // [f_j(1), ..., f_j(n)]
     }
 
-    public static void encode(int k, int n, int[][] imageMatrix, String hostsDirectory) {
+    public static void encode(int k, int n, int[][] imageMatrix, String hostsDirectory, int seed) throws IOException {
         List<Integer> image = ImageParsing.flatMatrixToList(imageMatrix);
         List<Shadow> shadowImages = new ArrayList<>();
-        int seed = RandomGenerator.getSeed();
         int height = imageMatrix.length;
         int width = imageMatrix[0].length;
         for (int i = 0; i < n; i++) {
@@ -83,6 +82,10 @@ public class ImageSharing {
         List<String> shadowFilenames = new ArrayList<>();
         int validImagesCount = 0;
         int filesIndex = 0;
+        Path ssdPath = Paths.get("ssd");
+        if (!Files.exists(ssdPath)) {
+            Files.createDirectory(ssdPath);
+        }
         while (filesIndex < fileSet.size() && validImagesCount < n){
             String hostname = fileSet.get(filesIndex++);
             String hostFilename = String.format("%s/%s%s", hostsDirectory,hostname, BMPIO.FILE_EXTENSION);
@@ -124,6 +127,7 @@ public class ImageSharing {
 
         BMPHostImage firstHostImage = hosts.getFirst();
         BMPHeader hostHeader = firstHostImage.getHeader();
+
         Shadow firstShadow = shadows.get(0);
         hostHeader.setWidth(firstShadow.getSecretImageWidth());
         hostHeader.setHeight(firstShadow.getSecretImageHeight());
@@ -134,21 +138,22 @@ public class ImageSharing {
         List<Integer> image = new ArrayList<>();
 
         for (int i = 0; i < shadowSize; i+=8){
-            List<Integer> ys = new ArrayList<>(k);
+            List<Pair<Integer, Integer>> ys = new ArrayList<>(k);
             for (int j = 0; j < k; j++) {
                 Shadow shadow = shadows.get(j);
+                int index = shadow.getIndex();
                 List<Integer> subBits = shadow.getBitPixels().subList(i, i+8);
                 int byteValue = binaryToInteger(subBits);
-                ys.add(byteValue);
+                ys.add(Pair.of(index, byteValue));
             }
             List<Integer> coefficients = LagrangianInterpolation.getCoefficients(ys);
             image.addAll(coefficients);
         }
-        RandomGenerator.setSeed(seed);
-        Random rand = RandomGenerator.getRandom();
+        Random rand = new Random();
+        rand.setSeed(seed);
         List<Integer> secretImage = new ArrayList<>();
-      for (Integer integer : image) {
-        secretImage.add(integer ^ rand.nextInt(256));
+      for (Integer pixel : image) {
+        secretImage.add(pixel ^ rand.nextInt(256));
       }
         BMPIO.writeToBMP(outputFile.getPath(), hostHeader, colorTable, secretImage);
     }
