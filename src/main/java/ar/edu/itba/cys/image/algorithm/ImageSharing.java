@@ -1,9 +1,6 @@
 package ar.edu.itba.cys.image.algorithm;
 
-import ar.edu.itba.cys.image.BMPHeader;
-import ar.edu.itba.cys.image.BMPHostImage;
-import ar.edu.itba.cys.image.BMPIO;
-import ar.edu.itba.cys.image.ImageParsing;
+import ar.edu.itba.cys.image.*;
 import ar.edu.itba.cys.math.LagrangianInterpolation;
 import ar.edu.itba.cys.utils.Pair;
 import ar.edu.itba.cys.utils.RandomGenerator;
@@ -35,6 +32,7 @@ public class ImageSharing {
             shadowImages.add(shadow);
         }
 
+        //already k solid
         for (int j = 0; j <= image.size() - k; j += k) {
             List<Integer> sharingSection = image.subList(j, j + k); // [a_0, a_1, ..., a_(r-1)]
             List<Integer> shadowPixels = getShadowPixels(n, sharingSection);
@@ -51,12 +49,12 @@ public class ImageSharing {
                 List<Integer> mutableSharingSection = new ArrayList<>(sharingSection);
                 shadowPixels = getShadowPixels(n, mutableSharingSection);
             }
-            //shadow default is for k=8
             for (int i = 0; i < n; i++) {
                 Shadow shadow = shadowImages.get(i);
                 shadow.getBitPixels().add(shadowPixels.get(i));
             }
         }
+        int minPixels = image.size() * (int) Math.ceil((double) Byte.SIZE/k);
 
         List<String> fileSet = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(hostsDirectory))) {
@@ -78,12 +76,35 @@ public class ImageSharing {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        for (int i = 0; i < n; i++) {
-            String hostname = fileSet.get(i);
+        if (fileSet.size() < n){
+            throw new RuntimeException(String.format("invalid number of files for n = %d", n));
+        }
+        List<BMPImage> validImages = new ArrayList<>();
+        List<String> shadowFilenames = new ArrayList<>();
+        int validImagesCount = 0;
+        int filesIndex = 0;
+        while (filesIndex < fileSet.size() && validImagesCount < n){
+            String hostname = fileSet.get(filesIndex++);
             String hostFilename = String.format("%s/%s%s", hostsDirectory,hostname, BMPIO.FILE_EXTENSION);
+            BMPImage hostImage = BMPIO.readFromBMP(Path.of(hostFilename), true);
             String shadowFilename = String.format("ssd/%sssd%s", hostname, BMPIO.FILE_EXTENSION);
+            BMPHeader header = hostImage.getHeader();
+            int imagePixels = header.getWidth() * header.getHeight();
+            if (imagePixels >= minPixels){
+                validImagesCount++;
+                validImages.add(hostImage);
+                shadowFilenames.add(shadowFilename);
+            }
+        }
+        if (validImagesCount < n){
+            throw new RuntimeException(String.format("invalid number of files for n = %d", n));
+        }
+
+        for (int i = 0; i < n; i++) {
+            BMPImage hostImage = validImages.get(i);
+            String shadowFilename = shadowFilenames.get(i);
             Shadow shadow = shadowImages.get(i);
-            BMPIO.writeShadowToBMPHostImage(hostFilename, shadowFilename, shadow);
+            BMPIO.writeShadowToBMPHostImage(hostImage, shadowFilename, shadow, k);
         }
     }
 
@@ -97,13 +118,15 @@ public class ImageSharing {
 
 
     public static void decode(int k, String directory, File outputFile) {
-        Pair<List<BMPHostImage>,List<Shadow>> pairHostShadow = BMPIO.getShadowForEachHostImage(directory);
+        Pair<List<BMPHostImage>,List<Shadow>> pairHostShadow = BMPIO.getShadowForEachHostImage(directory, k);
         List<BMPHostImage> hosts = pairHostShadow.getFirst();
         List<Shadow> shadows = pairHostShadow.getSecond();
 
         BMPHostImage firstHostImage = hosts.getFirst();
         BMPHeader hostHeader = firstHostImage.getHeader();
         Shadow firstShadow = shadows.get(0);
+        hostHeader.setWidth(firstShadow.getSecretImageWidth());
+        hostHeader.setHeight(firstShadow.getSecretImageHeight());
         int seed = firstShadow.getSeed();
         int shadowSize = firstShadow.getBitPixels().size();
         List<Integer> colorTable = firstHostImage.getColorTable();

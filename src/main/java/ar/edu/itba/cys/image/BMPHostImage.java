@@ -2,14 +2,20 @@ package ar.edu.itba.cys.image;
 
 import ar.edu.itba.cys.image.algorithm.Shadow;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
 public class BMPHostImage extends BMPImage {
     private Shadow shadow;
+    private int secretImageWidth;
+    private int secretImageHeight;
 
-    public BMPHostImage(BMPHeader header, List<Integer> colorTable, List<Integer> pixelsWithShadow) {
+    public BMPHostImage(BMPHeader header, List<Integer> colorTable, List<Integer> pixelsWithShadow, int secretImageWidth, int secretImageHeight) {
         super(header, colorTable, pixelsWithShadow);
+        this.secretImageHeight = secretImageHeight;
+        this.secretImageWidth = secretImageWidth;
     }
 
     public BMPHostImage(BMPHeader header, List<Integer> colorTable, List<Integer> pixels, Shadow secret) {
@@ -47,7 +53,7 @@ public class BMPHostImage extends BMPImage {
                 result += Math.pow(2, (numbers.length-i - 1));
         return result;
     }
-    public Shadow getShadow(){
+    public Shadow getShadow(int k){
         List<Integer> pixelData = this.getPixels();
         List<Integer> pixelByteData = BMPIO.convertToBits(pixelData);
         BMPHeader header = this.getHeader();
@@ -56,18 +62,20 @@ public class BMPHostImage extends BMPImage {
         int shadowIndex = header.getReservedL();
         int height = header.getHeight();
         int width = header.getWidth();
-        System.out.println(width);
-        System.out.println(height);
         int rowSize = ((width + 3) / 4) * 4;
-        List<Integer> shadowPixels = new ArrayList<>(width * height);
-        for (int x = Byte.SIZE-1; x < height * width * Byte.SIZE; x+=Byte.SIZE) {
+        int shadowPixelLimit = secretImageHeight * secretImageWidth  * (int) Math.ceil((double) Byte.SIZE/ k);
+        List<Integer> shadowPixels = new ArrayList<>(shadowPixelLimit);
+        for (int x = Byte.SIZE-1; x < width * height * Byte.SIZE; x+=Byte.SIZE) {
             //int rowStart = y * rowSize * Byte.SIZE;
             //for (int x = 0; x < width * Byte.SIZE; x++) {
                     int grayBit = pixelByteData.get(x);
                     shadowPixels.add(grayBit);
+                    if (shadowPixels.size() == shadowPixelLimit){
+                        break;
+                    }
             //}
         }
-        return new Shadow(shadowIndex, seed, width, height, shadowPixels);
+        return new Shadow(shadowIndex, seed, secretImageWidth, secretImageHeight, shadowPixels);
     }
 
 }

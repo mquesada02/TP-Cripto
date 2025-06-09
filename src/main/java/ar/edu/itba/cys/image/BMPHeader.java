@@ -12,11 +12,11 @@ public class BMPHeader {
     private final int reservedH;
     private final int reservedL;
     // till 000Ah
-    private final int dataOffset;
+    private int dataOffset;
     // Info Header
     private final int size = 40;
-    private final int width;
-    private final int height;
+    private int width;
+    private int height;
     // 2 bytes
     private final int planes = 1;
     //2 bytes
@@ -44,6 +44,17 @@ public class BMPHeader {
         this.importantColors = importantColors;
     }
 
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+    }
+
+    public void setDataOffset(int newDataOffset){
+        this.dataOffset = newDataOffset;
+    }
     public int getFileSize() {
         return fileSize;
     }
