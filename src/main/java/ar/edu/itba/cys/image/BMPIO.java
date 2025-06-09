@@ -122,8 +122,8 @@ public class BMPIO {
       }
 
       long n = (dataOffset - 54 - colorTableSize);
-      int secretImageWidth = 0;
-      int secretImageHeight = 0;
+      int secretImageWidth = width;
+      int secretImageHeight = height;
       if (n > 0){
         secretImageWidth = readShortLE(in);
         secretImageHeight = readShortLE(in);
