@@ -53,7 +53,8 @@ public class ImageSharing {
                 shadow.getBitPixels().add(shadowPixels.get(i));
             }
         }
-        int minPixels = image.size() * (int) Math.ceil((double) Byte.SIZE/k);
+
+        int minPixels = (int) Math.ceil((double) image.size()/k) * Byte.SIZE;
 
         List<String> fileSet = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(hostsDirectory))) {
@@ -142,14 +143,7 @@ public class ImageSharing {
             for (int j = 0; j < k; j++) {
                 Shadow shadow = shadows.get(j);
                 int index = shadow.getIndex();
-                int rest = shadowSize - i;
-                List<Integer> subBits;
-                if (rest >= 8) {
-                    subBits = shadow.getBitPixels().subList(i, i + 8);
-                }else{
-                    subBits = shadow.getBitPixels().subList(i, shadowSize);
-                    subBits.addAll(Collections.nCopies(8-rest, 0));
-                }
+                List<Integer> subBits = shadow.getBitPixels().subList(i, i + 8);
                 int byteValue = binaryToInteger(subBits);
                 ys.add(Pair.of(index, byteValue));
             }

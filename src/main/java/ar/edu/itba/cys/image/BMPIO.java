@@ -71,7 +71,6 @@ public class BMPIO {
       throw new IOException("Unexpected end of file when reading int.");
     }
 
-    //return (b1 & 0xFF) | ((b2 & 0xFF) << 8) | ((b3 & 0xFF) << 16) | ((b4 & 0xFF) << 24);
     return ((b4 & 0xFF) << 24) | ((b3 & 0xFF) << 16) | ((b2 & 0xFF) << 8) | (b1 & 0xFF);
   }
 
@@ -129,11 +128,7 @@ public class BMPIO {
         secretImageHeight = readShortLE(in);
       }
 
-      //byte[] pixelData = new byte[imageSize];
       List<Integer> pixelData =  ImageParsing.getGrayscaleBMPImageList(file.toFile());
-      //if (in.read(pixelData) != imageSize) {
-      //  throw new IOException("Unexpected EOF while reading pixels");
-      //}
       BMPHeader bmpHeader = new BMPHeader(fileSize, reservedHigh, reservedLow, dataOffset, width, height,bitsPerPixel, compression, imageSize, xPixelsPerM, yPixelsPerM, colorsUsed, importantColors);
       BMPImage image;
       if (hasSecret){
@@ -164,18 +159,14 @@ public class BMPIO {
     try (FileOutputStream fos = new FileOutputStream(filename)) {
       byte[] signature = new byte[] { 'B', 'M' };
       int fileSize = header.getFileSize();
-      int reservedHigh = header.getReservedH();
-      int reservedLow = header.getReservedL();
-      int dataOffset = header.getDataOffset();
-      if (dataOffset != 1078){
-        dataOffset = 1078;
-      }
-      //int dataOffset = header.getDataOffset() - 4;
+      int reservedHigh = 0;
+      int reservedLow = 0;
+      int dataOffset = 1078;
 
       fos.write(signature);
       writeIntLE(fos, fileSize);
-      writeShortLE(fos, 0);
-      writeShortLE(fos, 0);
+      writeShortLE(fos, reservedHigh);
+      writeShortLE(fos, reservedLow);
       writeIntLE(fos, dataOffset);
 
       int size = header.getSize();
@@ -205,13 +196,6 @@ public class BMPIO {
       for (int i = 0; i < colorTable.size(); i++){
         fos.write(colorTable.get(i));
       }
-      //long n = (dataOffset - 54 - colorTable.size());
-      //int secretImageWidth = 0;
-      //int secretImageHeight = 0;
-      //if (n > 0){
-      //  writeShortLE(fos, secretImageWidth);
-      //  writeShortLE(fos, secretImageHeight);
-      //}
 
       int rowSize = (width + 3) & ~3;
       byte[] row = new byte[rowSize];
@@ -314,14 +298,10 @@ public class BMPIO {
 
       List<Integer> hostPixels = hostImage.getPixels();
       List<Integer> shadowPixels = shadow.getBitPixels();
-      int originalBitsSize = shadow.getSecretImageHeight() * shadow.getSecretImageWidth() * (Byte.SIZE / k);
 
-      // iterar cada byte del original
       List<Integer> hostPixelsBits = convertToBits(hostPixels);
       List<Integer> shadowPixelsBits = convertToBits(shadowPixels);
 
-      //k != 8
-      //for (int hostPixelsIndex= Byte.SIZE-1, shadowPixelIndex = 0; hostPixelsIndex < originalBitsSize && shadowPixelIndex < shadowPixelsBits.size(); hostPixelsIndex+= Byte.SIZE, shadowPixelIndex++){
       for (int hostPixelsIndex= Byte.SIZE-1, shadowPixelIndex = 0; shadowPixelIndex < shadowPixelsBits.size(); hostPixelsIndex+= Byte.SIZE, shadowPixelIndex++){
         hostPixelsBits.set(hostPixelsIndex, shadowPixelsBits.get(shadowPixelIndex));
       }
@@ -331,23 +311,6 @@ public class BMPIO {
         fos.write(pixel);
       }
 
-//      for (int y = height - 1; y >= 0; y--) {
-//        for (int x = 0; x < width; x++) {
-//          // replace with k
-//          if (x > 0 && x % 7 == 0 && shadowPixelsIndex < shadowPixels.size()){
-//          //if (x > 0 && x % 7 == 0){
-//            int shadowPixel = shadowPixels.get(shadowPixelsIndex++);
-//            String binaryStringShadow = Integer.toBinaryString(shadowPixel);
-//            String substring = binaryString.substring(0, binaryString.length()-1);
-//            substring.concat()
-//            //fos.write( );
-//          }
-//          else{
-//            fos.write(originalPixels.get(hostPixelsIndex));
-//          }
-//          hostPixelsIndex++;
-//        }
-//      }
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
